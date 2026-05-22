@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(100)
+  email        String    @unique @db.VarChar(255)
+  phone        String    @unique @db.VarChar(10)
+  password     String    @db.VarChar(255)
+  role         Role      @default(STUDENT)
+  department   String?   @db.VarChar(100)
+  enrollmentNo String?   @db.VarChar(50)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  student   Student?
+  teacher   Teacher?
+  attendances Attendance[]
+  gestures    Gesture[]
+  emotions    Emotion[]
+}
+
+model Student {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  enrollmentNo String   @unique @db.VarChar(50)
+  department   String   @db.VarChar(100)
+  year         Int?
+  section      String?  @db.VarChar(10)
+  createdAt    DateTime @default(now())
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendances  Attendance[]
+  gestures     Gesture[]
+  emotions     Emotion[]
+}
+
+model Teacher {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  department   String   @db.VarChar(100)
+  designation  String?  @db.VarChar(100)
+  createdAt    DateTime @default(now())
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classes      Class[]
+}
+
+model Class {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  subject     String    @db.VarChar(100)
+  teacherId   Int
+  schedule    String?   @db.VarChar(200)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  teacher     Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  attendances Attendance[]
+}
+
+model Attendance {
+  id         Int       @id @default(autoincrement())
+  studentId  Int
+  classId    Int?
+  date       DateTime  @db.Date
+  status     AttendanceStatus @default(PRESENT)
+  confidence Float     @default(0.95)
+  imagePath  String?   @db.Text
+  createdAt  DateTime  @default(now())
+
+  student    Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class      Class?    @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, date])
+}
+
+model Gesture {
+  id         Int       @id @default(autoincrement())
+  studentId  Int
+  gesture    GestureType
+  confidence Float     @default(0.90)
+  timestamp  DateTime  @default(now())
+
+  student    Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Emotion {
+  id         Int       @id @default(autoincrement())
+  studentId  Int
+  emotion    EmotionType
+  confidence Float     @default(0.85)
+  timestamp  DateTime  @default(now())
+
+  student    Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum GestureType {
+  THUMBS_UP
+  RAISED_HAND
+  OK_SIGN
+  PEACE_SIGN
+  FIST
+  OPEN_PALM
+  POINTING
+  UNKNOWN
+}
+
+enum EmotionType {
+  HAPPY
+  SAD
+  ANGRY
+  FEAR
+  SURPRISE
+  DISGUST
+  NEUTRAL
+  ATTENTIVE
+  SLEEPY
+  CONFUSED
+  DISTRACTED
+}
